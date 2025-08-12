@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd"
+             schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>pascal_full</name>
+  <version>0.0.0</version>
+  <description>Full launch wrapper for arm control, depth proc, odom z-estimate, and tree templating</description>
+  <maintainer email="pascal@todo.todo">pascal</maintainer>
+  <license>TODO: License declaration</license>
+
+  <!-- build tool -->
+  <!-- <buildtool_depend>ament_python</buildtool_depend> -->
+
+  <!-- runtime dependencies -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>harvest_control</exec_depend>
+  <exec_depend>depth_image_proc</exec_depend>
+  <exec_depend>pascal_odom</exec_depend>
+  <exec_depend>tree_template</exec_depend>
+
+  <!-- for tests (keep as before) -->
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
