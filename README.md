@@ -5,7 +5,7 @@
 **TODO- make config section for voxel and update the readme accordingly for voxelization**
 
 
-### Voxelizing
+## Voxelizing
 A voxel cloud represented as a point cloud topic (voxel midpoints) is automatically generated based on set user parameters, such as radius, height, size, etc. A point cloud is generated every second. **A voxel-map CSV is written to the current ROS workspace root as `voxel_map.csv`, hardcoded**. This saved voxel_map allows for easy lookup of voxel IDs corresponding to a (x,y,z) point in the base_link frame, needed for caching and later-execution. 
 
 Current parameters set (correlating with .csv files in parent dir) include:
@@ -19,7 +19,7 @@ Current parameters set (correlating with .csv files in parent dir) include:
 | `push_from_base`  | 0.6 (m) |
 
 
-### All points caching
+## All points caching
 Caching with this tool solves for highly-manipulable trajectories at two different approaches:
 1. From `test` to `approach`
 2. From `approach` to `center`
@@ -49,9 +49,35 @@ To estimate a similar result of `approach` to `center`, a Cartesian path seeded 
 
 **WARNING** If an all points cache creation was initially successful, and for any reason it was to be run again in post, **the initial CSV will be overwritten, and the initial cache will be deleted**. For this reason, it's highly recommended that after a cache is fully solved, it be duplicated/backed up in a separate directory.
 
-### All points executing
+## All points executing
 
-### Notes
+## Apple Predictions (with visual in voxel)
+Included in this package isn't just trajectory caching, but a sample integrated version of apple mask prediction via YOLO. Model weights are pulled from `/models` (in our case, `/models/best-merged-apples-thlo-merged-wsu-v8n.pt`) and used in `apple_pred.py`. Necessary ROS2 image topics are loaded and fed to the model, where at any instance, a colored image is used for classification, and its corresponding depth image is projected to map with the colored image, allowing us to pull the exact apple depth at the median of a mask.
+
+We not only do this, but then publish a pointcloud topic **`apple_cloud` this needs to change to not be hardcoded, config add**, where said median points from any classified apple mask are republished in its own topic -- used for fitting which voxels have a genuine apple within them.
+
+apple_pred parameters:
+| Paramter  | Default |
+| ------------- | ------------- |
+| `color_topic`  | `/camera/color/image_rect` |
+| `depth_topic`  | `/camera/depth/image_rect` |
+| `info_topic`  | `/camera/color/camera_info_rect` |
+| `model_path`  | `/home/pascal/ros2_ws/src/pascal_full/models/best-merged-apples-thlo-merged-wsu-v8n.pt` |
+| `conf`  | 0.4 |
+| `iou`  | 0.6 |
+**TODO ADD A TOPIC FOR PUBLISHED APPLE CLOUD NAME**
+
+With a published point cloud, we then call on `visualize_apple_pred.py` to visualize/ID each point cloud to its correct voxel. A ROS2 `MarkerArray` is used to publish cube markers alongside a point cloud, though this `MarkerArray` is really best used for visualization in practice. `visualize_apple_pred.py` can read **TODO ADD APPLE CLOUD TOPIC HERE** with each pointcloud's position in frame, iterate through voxels to find if that tested point lies within any voxel, and if so, publishes a deep red voxel in its place on the `MarkerArray` `apple_pred_marker_arrays` topic **TODO, MAKE A CUSTOM TOPIC NAME HERE**.
+
+visualize_apple_pred parameters:
+| Paramter  | Default |
+| ------------- | ------------- |
+| `apple_pointcloud_topic` NOT MADE YET | `/apple_cloud` |
+| `apple_markerarray_topic` NOT MADE YET | `/apple_pred_marker_arrays` |
+**TODO ADD A TOPIC FOR PUBLISHED APPLE CLOUD NAME**
+
+
+## Notes
 Caching is currently configured for the ur5e arm with starting joint-states at the `test` position found in the `apple-harvest` repo. Joint positions are conservative estimates, and are should be/are planned with some tolerance (as acceptance for MoveIt). As of writing, starting joint-state configuration is (and hardcoded as accepting):
 | Joint  | Position |
 | ------------- | ------------- |
