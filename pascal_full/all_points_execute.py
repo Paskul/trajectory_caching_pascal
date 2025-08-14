@@ -18,32 +18,37 @@ class ClickPointListener(Node):
     def __init__(self):
         super().__init__('click_point_listener')
 
-        # CSV paths (assume we're in workspace root)
-        cwd = os.getcwd()
-        self.voxel_map_path   = os.path.join(cwd, 'voxel_map.csv')
-        self.refined_map_path = os.path.join(cwd, 'refined_map.csv')
+        self.declare_parameter('voxel_map_path',        '~/ros2_ws/voxel_map.csv')
+        self.declare_parameter('cache_map',             '~/ros2_ws/cache_map.csv')
+        self.declare_parameter('segment',               'approach')  # 'approach' or 'center'
+        self.declare_parameter('clicked_point_topic',   '/clicked_point')
+        self.declare_parameter('trajectory_topic',      '/pascal_cached_trajectory')
+
+        self.voxel_map_path   = self.get_parameter('voxel_map_path').get_parameter_value().string_value
+        self.refined_map_path = self.get_parameter('cache_map').get_parameter_value().string_value
+        self.segment          = self.get_parameter('segment').get_parameter_value().string_value
+        self.clicked_point_topic = self.get_parameter('clicked_point_topic').get_parameter_value().string_value
+        self.trajectory_topic    = self.get_parameter('trajectory_topic').get_parameter_value().string_value
+
+        if self.segment not in ('approach', 'center'):
+            self.get_logger().warn(f"Invalid segment '{self.segment}', defaulting to 'approach'")
+            self.segment = 'approach'
 
         # load voxel coordinates
         self.voxels = []
         self._load_voxel_map()
 
-        # ask once which segment to execute
-        choice = None
-        while choice not in ('approach', 'center'):
-            choice = input("Select segment to execute ('approach' or 'center'): ").strip()
-        self.segment = choice
-
         # publisher for selected trajectory
         self.traj_pub = self.create_publisher(
             JointTrajectory,
-            '/pascal_cached_trajectory',
+            self.trajectory_topic,
             10
         )
 
         # subscribe to clicked_point
         self.create_subscription(
             PointStamped,
-            '/clicked_point',
+            self.clicked_point_topic,
             self.callback,
             10
         )

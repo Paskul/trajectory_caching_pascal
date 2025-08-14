@@ -1,0 +1,61 @@
+all_points_cacher:
+  ros__parameters:
+    csv_out_path:               /home/pascal/ros2_ws/cache_map.csv
+    voxel_centers_topic:        /workspace_voxel_centers
+    cone_radius:                0.20
+    cone_num_pts:               20
+
+trajectory_cacher:
+  ros__parameters:
+    approach_weight:            0.5
+    final_weight:               0.5
+    cone_angle:                 45.0
+    group_name:                 ur_manipulator
+    cone_points_topic:          sampled_cone_points
+
+all_points_execute:
+  ros__parameters:
+    voxel_map_path:             /home/pascal/ros2_ws/voxel_map.csv
+    cache_map:                  /home/pascal/ros2_ws/cache_map.csv
+    segment:                    approach
+    clicked_point_topic:        /clicked_point
+    trajectory_topic:           /pascal_cached_trajectory
+
+trajectory_execute:
+  ros__parameters:
+    trajectory_topic:           /pascal_cached_trajectory
+
+hybrid_exec:
+  ros__parameters:
+    group_name:                 ur_manipulator
+    pipeline_id:                ompl
+
+voxelize:
+  ros__parameters:
+    base_frame:                 base_link
+    camera_frame:               camera_link
+    voxel_size:                 0.15
+    radius_max:                 1.0
+    z_min:                      0.0
+    z_max:                      1.2
+    cut_angle:                  -18.435
+    push_from_base:             0.6
+    voxel_markerarray_topic:    workspace_voxels
+    voxel_pointcloud_topic:     workspace_voxel_centers
+    apple_point_topic:          apple_cloud
+    voxel_map_path:             /home/pascal/ros2_ws/voxel_map.csv
+
+apple_pred:
+  ros__parameters:
+    color_topic:                /camera/color/image_rect
+    depth_topic:                /camera/depth/image_rect
+    info_topic:                 /camera/color/camera_info_rect
+    model_path:                 /home/pascal/ros2_ws/src/pascal_full/models/best-merged-apples-thlo-merged-wsu-v8n.pt
+    apple_points_topic:         apple_cloud
+    conf:                       0.4
+    iou:                        0.6
+
+visaulize_apple_pred:
+  ros__parameters:
+    apple_points_topic:         apple_cloud
+    apple_marker_arrays_topic:  apple_pred_marker_arrays

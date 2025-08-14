@@ -29,6 +29,9 @@ class HybridPlanClient(Node):
     def __init__(self):
         super().__init__('hybrid_plan_client')
 
+        self.declare_parameter('group_name', 'ur_manipulator')
+        self.declare_parameter('pipeline_id', 'ompl')
+
         # Action client for hybrid planning
         self._client = ActionClient(
             self,
@@ -67,10 +70,9 @@ class HybridPlanClient(Node):
 
 
         # choose your group and pipeline explicitly
-        mp_req.group_name                  = 'ur_manipulator'
-        
+        mp_req.group_name = self.get_parameter('group_name').get_parameter_value().string_value     
         #mp_req.pipeline_id                 = 'move_group'
-        mp_req.pipeline_id                 = 'ompl'
+        mp_req.pipeline_id = self.get_parameter('pipeline_id').get_parameter_value().string_value
         
         #mp_req.planner_id                  = 'RRTstarkConfigDefault'
         mp_req.planner_id                  = 'geometric::RRTstar'
@@ -111,7 +113,7 @@ class HybridPlanClient(Node):
 
         # --- 3) Send the HybridPlanner goal ---
         goal_msg = HybridPlanner.Goal()
-        goal_msg.planning_group  = 'ur_manipulator'
+        goal_msg.planning_group  = self.get_parameter('group_name').get_parameter_value().string_value
         goal_msg.motion_sequence = seq_req
 
         send_goal = self._client.send_goal_async(

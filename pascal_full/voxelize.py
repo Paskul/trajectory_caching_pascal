@@ -53,18 +53,28 @@ class WorkspaceVoxelizer(Node):
         self.declare_parameter('cut_angle',     -18.435)  # degrees
         self.declare_parameter('push_from_base', 0.6)    # meters forward
 
-        # ─── load parameters ───────────────────────────────
-        self.base_frame   = self.get_parameter('base_frame').value
-        self.camera_frame = self.get_parameter('camera_frame').value
-        self.voxel_size   = self.get_parameter('voxel_size').value
-        self.r_max        = self.get_parameter('radius_max').value
-        self.z_floor      = self.get_parameter('z_min').value
-        self.z_ceiling    = self.get_parameter('z_max').value
+        self.declare_parameter('voxel_markerarray_topic', 'workspace_voxels')
+        self.declare_parameter('voxel_pointcloud_topic', 'workspace_voxel_centers')
+        self.declare_parameter('apple_point_topic', 'apple_cloud')
+        self.declare_parameter('voxel_map_path', '~/ros2_ws/voxel_map.csv')
 
-        self.cut_angle = self.get_parameter('cut_angle').value
+        # ─── load parameters ───────────────────────────────
+        self.base_frame   = self.get_parameter('base_frame').get_parameter_value().string_value
+        self.camera_frame = self.get_parameter('camera_frame').get_parameter_value().string_value
+        self.voxel_size   = self.get_parameter('voxel_size').get_parameter_value().double_value
+        self.r_max        = self.get_parameter('radius_max').get_parameter_value().double_value
+        self.z_floor      = self.get_parameter('z_min').get_parameter_value().double_value
+        self.z_ceiling    = self.get_parameter('z_max').get_parameter_value().double_value
+        self.apple_point_topic    = self.get_parameter('apple_point_topic').get_parameter_value().string_value
+
+        self.cut_angle = self.get_parameter('cut_angle').get_parameter_value().double_value
         self.tan_theta = math.tan(math.radians(self.cut_angle))
 
-        self.push_y = self.get_parameter('push_from_base').value
+        self.push_y = self.get_parameter('push_from_base').get_parameter_value().double_value
+
+        self.voxel_markerarray_topic = self.get_parameter('voxel_markerarray_topic').get_parameter_value().string_value
+        self.voxel_pointcloud_topic = self.get_parameter('voxel_pointcloud_topic').get_parameter_value().string_value
+        self.voxel_map_path = self.get_parameter('voxel_map_path').get_parameter_value().string_value
 
         # TF buffer & listener
         self.tf_buffer   = Buffer()
@@ -74,13 +84,13 @@ class WorkspaceVoxelizer(Node):
         self._init_voxels()
 
         # publishers & state
-        self.pub            = self.create_publisher(MarkerArray, 'workspace_voxels',   1)
-        self.cloud_pub      = self.create_publisher(PointCloud2,   'workspace_voxel_centers', 1)
+        self.pub            = self.create_publisher(MarkerArray, self.voxel_markerarray_topic, 1)
+        self.cloud_pub      = self.create_publisher(PointCloud2, self.voxel_pointcloud_topic, 1)
         self.apple_voxel_ids = set()
 
         # subscribe & timer
         self.create_subscription(PointCloud2,
-                                 'apple_cloud',
+                                 self.apple_point_topic,
                                  self.apple_callback,
                                  10)
         self.create_timer(1.0, self.publish_voxels)
@@ -147,9 +157,10 @@ class WorkspaceVoxelizer(Node):
         ]
 
         # dump the ID→center map to CSV
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        ws_root    = os.path.abspath(os.path.join(script_dir, '..','..','..'))
-        csv_path   = os.path.join(ws_root, 'voxel_map.csv')
+        #script_dir = os.path.dirname(os.path.realpath(__file__))
+        #ws_root    = os.path.abspath(os.path.join(script_dir, '..','..','..'))
+        #csv_path   = os.path.join(ws_root, 'cache_map.csv')
+        csv_path = self.voxel_map_path
 
         with open(csv_path, 'w', newline='') as f:
             writer = csv.writer(f)

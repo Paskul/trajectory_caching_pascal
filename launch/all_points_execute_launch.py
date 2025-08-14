@@ -12,23 +12,23 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('pascal_full')
     params_file = os.path.join(pkg_share, 'config', 'cache_config.yaml')
 
-    apple_pred = Node(
+    all_exec = Node(
         package='pascal_full',
-        executable='apple_pred',
-        name='apple_pred',
+        executable='all_points_execute',
+        name='all_points_execute',
         output='screen',
         parameters=[params_file]
     )
 
-    apple_pred_vis = Node(
+    single_exec = Node(
         package='pascal_full',
-        executable='visualize_apple_pred',
-        name='visualize_apple_pred',
+        executable='trajectory_execute',
+        name='trajectory_execute',
         output='screen',
         parameters=[params_file]
     )
 
     return LaunchDescription([
-        apple_pred,
-        apple_pred_vis,
+        all_exec,
+        single_exec,
     ])

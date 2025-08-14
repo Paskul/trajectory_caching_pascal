@@ -47,18 +47,23 @@ class SphereMotionPlanner(Node):
             ],
         )
 
-        # scoring weights
-        self.approach_weight = 1.0
-        self.final_weight    = 1.0
+        self.declare_parameter('approach_weight', 0.5)
+        self.declare_parameter('final_weight',    0.5)
+        self.declare_parameter('cone_angle',      45.0)     # degrees
+        self.declare_parameter('group_name',      'ur_manipulator')
+        self.declare_parameter('cone_points_topic', 'sampled_cone_points')  # topic name
+
+        self.approach_weight = self.get_parameter('approach_weight').get_parameter_value().double_value
+        self.final_weight    = self.get_parameter('final_weight').get_parameter_value().double_value
+        self.cone_angle      = self.get_parameter('cone_angle').get_parameter_value().double_value
+        self.group_name      = self.get_parameter('group_name').get_parameter_value().string_value
+        self.sample_topic    = self.get_parameter('cone_points_topic').get_parameter_value().string_value
 
         # cone‑sampling parameter (half‑angle in degrees)
-        self.declare_parameter('cone_angle', 45.0)
-        self.cone_angle = self.get_parameter('cone_angle').value
         self.cos_cone   = math.cos(math.radians(self.cone_angle))
 
         # publisher for sampled cone points
-        self.sample_pub = self.create_publisher(PointCloud2,
-                                                'sampled_cone_points', 1)
+        self.sample_pub = self.create_publisher(PointCloud2, self.sample_topic, 1)
 
         # MoveIt! service clients
         self.ik_cli     = self.create_client(GetPositionIK,    'compute_ik')
@@ -168,7 +173,7 @@ class SphereMotionPlanner(Node):
 
             # 1) IK: home -> approach
             ik1 = PositionIKRequest(
-                group_name   = 'ur_manipulator',
+                group_name   = self.group_name,
                 ik_link_name = 'gripper_link',
                 robot_state  = RobotState(joint_state=self.home),
                 pose_stamped = app,
@@ -200,7 +205,7 @@ class SphereMotionPlanner(Node):
                                orientation_constraints=[ori_c])
 
             mp_req = MotionPlanRequest(
-                group_name                      ='ur_manipulator',
+                group_name                      =self.group_name,
                 start_state                     =RobotState(joint_state=self.home),
                 goal_constraints                =[cons],
                 num_planning_attempts           =10,
@@ -223,7 +228,7 @@ class SphereMotionPlanner(Node):
 
             # 3) IK: approach -> center (to seed Cartesian path)
             ik2 = PositionIKRequest(
-                group_name   = 'ur_manipulator',
+                group_name   = self.group_name,
                 ik_link_name = 'gripper_link',
                 robot_state  = RobotState(joint_state=js_app),
                 pose_stamped = cen,
@@ -247,7 +252,7 @@ class SphereMotionPlanner(Node):
             cart_start.name     = approach_traj.joint_names
             cart_start.position = end_positions
             cart_req.start_state      = RobotState(joint_state=cart_start)
-            cart_req.group_name       = 'ur_manipulator'
+            cart_req.group_name       = self.group_name
             cart_req.waypoints        = [app.pose, cen.pose]
             cart_req.max_step         = 0.01
             cart_req.jump_threshold   = 0.0

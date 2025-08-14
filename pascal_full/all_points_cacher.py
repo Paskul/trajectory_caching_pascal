@@ -4,6 +4,7 @@ import csv
 
 import rclpy
 from rclpy.node import Node
+from rcl_interfaces.msg import ParameterDescriptor
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
 from geometry_msgs.msg import Point
@@ -15,16 +16,20 @@ class BatchPlanner(Node):
     def __init__(self):
         super().__init__('batch_planner')
 
-        # initialize the trajectory planner
         self.planner = SphereMotionPlanner()
 
-        # compute output CSV path
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        ws_root    = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
-        self.out_path = os.path.join(ws_root, 'refined_map.csv')
+        self.declare_parameter('csv_out_path',          '~/ros2_ws/refined_map.csv')
+        self.declare_parameter('voxel_centers_topic',   '/workspace_voxel_centers')
+        self.declare_parameter('cone_radius',     0.20)     # meters
+        self.declare_parameter('cone_num_pts',    20)       # integer count
 
-        # 1) truncate any existing file (erase old data)
-        open(self.out_path, 'w').close()
+        self.csv_out_path =             self.get_parameter('csv_out_path').get_parameter_value().string_value
+        self.voxel_centers_topic =      self.get_parameter('voxel_centers_topic').get_parameter_value().string_value
+        self.cone_radius     =          self.get_parameter('cone_radius').get_parameter_value().double_value
+        self.cone_num_pts    =          self.get_parameter('cone_num_pts').get_parameter_value().integer_value
+
+        # truncate any existing file (erase old data)
+        open(self.csv_out_path, 'w').close()
 
         # track whether we've written the header yet
         self.header_written = False
@@ -32,7 +37,7 @@ class BatchPlanner(Node):
         # subscribe to the voxel‑center cloud
         self.subscription = self.create_subscription(
             PointCloud2,
-            '/workspace_voxel_centers',
+            self.voxel_centers_topic,
             self.callback,
             10
         )
@@ -46,7 +51,7 @@ class BatchPlanner(Node):
             points.append(Point(x=float(p[0]), y=float(p[1]), z=float(p[2])))
 
         # append new trajectory rows on each callback
-        with open(self.out_path, 'a', newline='') as f:
+        with open(self.csv_out_path, 'a', newline='') as f:
             writer = csv.writer(f)
 
             for vid, center in enumerate(points):
@@ -55,8 +60,12 @@ class BatchPlanner(Node):
                     f"{center.y:.3f},{center.z:.3f})"
                 )
 
-                # now returns (approach_traj, center_traj, score)
-                approach_traj, center_traj, score = self.planner.plan_for_center(center)
+                approach_traj, center_traj, score = self.planner.plan_for_center(
+                    center,
+                    self.cone_num_pts,
+                    self.cone_radius
+                )
+                
                 if approach_traj is None or center_traj is None:
                     self.get_logger().warn(f"No valid full plan for voxel {vid}")
                     continue

@@ -14,6 +14,9 @@ class PlanExecutor(Node):
     def __init__(self):
         super().__init__('plan_executor')
 
+        self.declare_parameter('trajectory_topic', '/pascal_cached_trajectory')
+        self.trajectory_topic = self.get_parameter('trajectory_topic').get_parameter_value().string_value
+
         # ROS 2 ExecuteTrajectory action client
         self._client = ActionClient(self,
                                     ExecuteTrajectory,
@@ -26,7 +29,7 @@ class PlanExecutor(Node):
         # subscribe to selected trajectory
         self.create_subscription(
             JointTrajectory,
-            '/pascal_cached_trajectory',
+            self.trajectory_topic,
             self.on_trajectory,
             10
         )

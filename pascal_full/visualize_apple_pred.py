@@ -15,16 +15,24 @@ import sensor_msgs_py.point_cloud2 as pc2
 class VisualizeAppleCloud(Node):
     def __init__(self):
         super().__init__('visualize_apple_cloud')
+
+        self.declare_parameter('apple_points_topic', 'apple_cloud')
+        self.declare_parameter('apple_marker_arrays_topic', 'apple_pred_marker_arrays')
+
+        self.apple_points_topic = self.get_parameter('apple_points_topic').get_parameter_value().string_value
+        self.apple_marker_arrays_topic = self.get_parameter('apple_marker_arrays_topic').get_parameter_value().string_value
+
+
         # Subscribe to the apple PointCloud2
         self.sub = self.create_subscription(
             PointCloud2,
-            'apple_cloud',
+            self.apple_points_topic,
             self.cloud_callback,
             10
         )
         # Publisher for MarkerArray
-        self.pub = self.create_publisher(MarkerArray, 'apple_pred_marker_arrays', 10)
-        self.get_logger().info('Subscribed to apple_cloud; publishing MarkerArray on apple_pred_marker_arrays')
+        self.pub = self.create_publisher(MarkerArray, self.apple_marker_arrays_topic, 10)
+        self.get_logger().info('Subscribed to apple_points_topic; publishing MarkerArray on apple_marker_arrays_topic')
 
     def cloud_callback(self, cloud_msg: PointCloud2):
         # Read all points from the cloud

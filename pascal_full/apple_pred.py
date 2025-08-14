@@ -24,22 +24,24 @@ class AppleDepthNode(Node):
         self.declare_parameter('depth_topic', '/camera/depth/image_rect')
         self.declare_parameter('info_topic', '/camera/color/camera_info_rect')
         self.declare_parameter('model_path', '/home/pascal/ros2_ws/src/pascal_full/models/best-merged-apples-thlo-merged-wsu-v8n.pt')
+        self.declare_parameter('apple_points_topic', 'apple_cloud')
         self.declare_parameter('conf', 0.4)
         self.declare_parameter('iou', 0.6)
 
-        color_topic = self.get_parameter('color_topic').value
-        depth_topic = self.get_parameter('depth_topic').value
-        info_topic  = self.get_parameter('info_topic').value
-        model_path  = self.get_parameter('model_path').value
-        self.conf   = self.get_parameter('conf').value
-        self.iou    = self.get_parameter('iou').value
+        color_topic = self.get_parameter('color_topic').get_parameter_value().string_value
+        depth_topic = self.get_parameter('depth_topic').get_parameter_value().string_value
+        info_topic  = self.get_parameter('info_topic').get_parameter_value().string_value
+        model_path  = self.get_parameter('model_path').get_parameter_value().string_value
+        self.apple_points_topic  = self.get_parameter('apple_points_topic').get_parameter_value().string_value
+        self.conf   = self.get_parameter('conf').get_parameter_value().double_value
+        self.iou    = self.get_parameter('iou').get_parameter_value().double_value
 
         # Load YOLO model
         self.model = YOLO(model_path)
         self.bridge = CvBridge()
 
         # Publisher: PointCloud2 of apple points
-        self.pub = self.create_publisher(PointCloud2, 'apple_cloud', 10)
+        self.pub = self.create_publisher(PointCloud2, self.apple_points_topic, 10)
 
         # Subscribers with time sync
         c_sub = Subscriber(self, Image, color_topic)
