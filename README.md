@@ -9,15 +9,20 @@
 A voxel cloud represented as a point cloud topic (voxel midpoints) is automatically generated based on set user parameters, such as radius, height, size, etc. A point cloud is generated every second. **A voxel-map CSV is written to the current ROS workspace root as `voxel_map.csv`, hardcoded**. This saved voxel_map allows for easy lookup of voxel IDs corresponding to a (x,y,z) point in the base_link frame, needed for caching and later-execution. 
 
 Current parameters set (correlating with .csv files in parent dir) include:
-| Parameter | Value |
+| Parameter | Default |
 | ------------- | ------------- |
-| `voxel_size`  | 0.15 (m) |
-| `radius_max`  | 1.0 (m) |
-| `z_min`  | 0.0 (m) |
-| `z_max`  | 1.2 (m) |
-| `cut_angle`  | -18.435 (deg) |
-| `push_from_base`  | 0.6 (m) |
-
+| `base_frame`  | base_link |
+| `camera_frame`  | camera_link |
+| `voxel_size`  | 0.15 |
+| `radius_max`  | 1.0 |
+| `z_min`  | 0.0 |
+| `z_max`  | 1.2 |
+| `cut_angle`  | -18.435 |
+| `push_from_base`  | 0.6 |
+| `voxel_markerarray_topic`  | workspace_voxels |
+| `voxel_pointcloud_topic`  | workspace_voxel_centers |
+| `apple_point_topic`  | apple_cloud |
+| `voxel_map_path`  | /home/pascal/ros2_ws/voxel_map.csv |
 
 ## All points caching
 Caching with this tool solves for highly-manipulable trajectories at two different approaches:
@@ -47,13 +52,23 @@ Each voxel point has a generated, resulting in an `O(vcm)` time complexity for t
 
 To estimate a similar result of `approach` to `center`, a Cartesian path seeded from the selected `test` to `approach` trajectory end-pose to voxel-midpoint (`center`) is calculated, and stored. This Cartesian path does not consider manipulability. I would expect it still avoids joint limits, but there is nothing proven here, and this is the exact reason a custom servo-controller is needed as a last step.
 
-all_points_cacher parameters: **TODO, ACTUALLY MAKE THESE PARAMS AGAIN IN CONFIG**
-| Parameter | Value |
+all_points_cacher (for all points, iterates over trajectory_cacher) parameters:
+| Parameter | Default |
 | ------------- | ------------- |
-| `caches_out_path`  | `/home/pascal/ros2_ws/refined_map.csv` |
-| `z_max`  | 1.2 (m) |
-| `cut_angle`  | -18.435 (deg) |
-| `push_from_base`  | 0.6 (m) |
+| `caches_out_path`  | /home/pascal/ros2_ws/cache_map.csv |
+| `voxel_centers_topic`  | /workspace_voxel_centers |
+| `cone_radius`  | 0.20 |
+| `cone_num_pts`  | 20 |
+
+trajectory_cacher (then called multiple times, used for one point) parameters:
+| Parameter | Default |
+| ------------- | ------------- |
+| `approach_weight`  | 0.5 |
+| `final_weight`  | 0.5 |
+| `cone_angle`  | 45.0 |
+| `group_name`  | ur_manipulator |
+| `cone_points_topic`  | sampled_cone_points |
+
 
 
 **WARNING** If an *all points CSV* creation was initially successful, and for any reason it was to be run again in post, **the initial CSV will be overwritten, and the initial cache will be deleted**. For this reason, it's highly recommended that after a cache is fully solved, it be duplicated/backed up in a separate directory.
@@ -85,9 +100,8 @@ With a published point cloud, we then call on `visualize_apple_pred.py` to visua
 visualize_apple_pred parameters:
 | Paramter  | Default |
 | ------------- | ------------- |
-| `apple_pointcloud_topic` NOT MADE YET | `/apple_cloud` |
-| `apple_markerarray_topic` NOT MADE YET | `/apple_pred_marker_arrays` |
-**TODO ADD A TOPIC FOR PUBLISHED APPLE CLOUD NAME**
+| `apple_points_topic` | apple_cloud |
+| `apple_marker_arrays_topic` | apple_pred_marker_arrays |
 
 
 ## Misc. Notes
