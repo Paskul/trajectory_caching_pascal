@@ -76,8 +76,31 @@ trajectory_cacher (then called multiple times, used for one point) parameters:
 ## All points executing
 **TODO ADD Notes on how all point exec works, pulling from CSV, checks with moveit, then exec**
 
+all_points_execute (handles approach/final, point selection, sends plan) parameters:
+| Parameter | Default |
+| ------------- | ------------- |
+| `voxel_map_path`  | /home/pascal/ros2_ws/voxel_map.csv |
+| `cache_map`  | /home/pascal/ros2_ws/cache_map.csv |
+| `segment`  | approach |
+| `clicked_point_topic`  | /clicked_point |
+| `trajectory_topic`  | /pascal_cached_trajectory |
+
+trajectory_cacher (executes sent plan) parameters:
+| Parameter | Default |
+| ------------- | ------------- |
+| `trajectory_topic`  | /pascal_cached_trajectory |
+
+
 ## Hybrid execution (Early version of Hybrid planning)
 **TODO: Mention what code currently does, how it's kind of broken, maybe it works from a starting point, but not for relating to everything else I've done**
+
+
+hybrid_exec (global/local planning and execute) parameters:
+| Parameter | Default |
+| ------------- | ------------- |
+| `group_name`  | ur_manipulator |
+| `pipeline_id`  | ompl |
+
 
 ## Apple Predictions (with visual in voxel)
 Included in this package isn't just trajectory caching, but a sample integrated version of apple mask prediction via YOLO. Model weights are pulled from `/models` (in our case, `/models/best-merged-apples-thlo-merged-wsu-v8n.pt`) and used in `apple_pred.py`. Necessary ROS2 image topics are loaded and fed to the model, where at any instance, a colored image is used for classification, and its corresponding depth image is projected to map with the colored image, allowing us to pull the exact apple depth at the median of a mask.
@@ -87,15 +110,18 @@ We not only do this, but then publish a pointcloud topic **`apple_cloud` this ne
 apple_pred parameters:
 | Paramter  | Default |
 | ------------- | ------------- |
-| `color_topic`  | `/camera/color/image_rect` |
-| `depth_topic`  | `/camera/depth/image_rect` |
-| `info_topic`  | `/camera/color/camera_info_rect` |
-| `model_path`  | `/home/pascal/ros2_ws/src/pascal_full/models/best-merged-apples-thlo-merged-wsu-v8n.pt` |
+| `color_topic`  | /camera/color/image_rect |
+| `depth_topic`  | /camera/depth/image_rect |
+| `info_topic`  | /camera/color/camera_info_rect |
+| `model_path`  | /home/pascal/ros2_ws/src/pascal_full/models/best-merged-apples-thlo-merged-wsu-v8n.pt |
+| `apple_points_topic`  | apple_cloud |
 | `conf`  | 0.4 |
 | `iou`  | 0.6 |
-**TODO ADD A TOPIC FOR PUBLISHED APPLE CLOUD NAME**
 
 With a published point cloud, we then call on `visualize_apple_pred.py` to visualize/ID each point cloud to its correct voxel. A ROS2 `MarkerArray` is used to publish cube markers alongside a point cloud, though this `MarkerArray` is really best used for visualization in practice. `visualize_apple_pred.py` can read **TODO ADD APPLE CLOUD TOPIC HERE** with each pointcloud's position in frame, iterate through voxels to find if that tested point lies within any voxel, and if so, publishes a deep red voxel in its place on the `MarkerArray` `apple_pred_marker_arrays` topic **TODO, MAKE A CUSTOM TOPIC NAME HERE**.
+
+## Visualize Apple Predictions
+**TODO, that segmenet above could be moved down?**
 
 visualize_apple_pred parameters:
 | Paramter  | Default |
@@ -105,7 +131,7 @@ visualize_apple_pred parameters:
 
 
 ## Misc. Notes
-Caching is currently configured for the ur5e arm with starting joint-states at the `test` position found in the `apple-harvest` repo. Joint positions are conservative estimates, and are should be/are planned with some tolerance (as acceptance for MoveIt) on the `ur_manipulator` group name (this is important for caching/execution). As of writing, starting joint-state configurations are (and are hardcoded as accepting):
+Caching is currently configured for the ur5e arm with starting joint-states at the `test` position found in the `apple-harvest` repo. Launching does not put you at the `test` position -- you must move there first. Joint positions are conservative estimates, and should be/are planned with some tolerance (as acceptance for MoveIt) on the `ur_manipulator` group name (this is important for caching/execution). As of writing, starting joint-state configurations are (and are hardcoded as accepting):
 | Joint  | Position |
 | ------------- | ------------- |
 | `shoulder_pan_joint`  | 1.54 |
