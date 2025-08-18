@@ -1,5 +1,7 @@
 # Trajectory caching workflow -- Pascal
 
+A ROS2 package to perform trajectory caching for voxels with execution on a UR5e arm. Files for apple harvest visualization/prediction are included as well.
+
 ## Launching
 
 ### Voxelization
@@ -67,13 +69,14 @@ Caching with this tool solves for highly-manipulable trajectories at two differe
 
 `approach` is determined through an approach to maximize manipulability. For each voxel point generated, a spherical cone is projected from the original voxel point, outwards towards the `gripper_link` as described by the TF tree. The *surface intersection of the sphere with the cone* then has a uniform sampling to determine a smaller range of end-point poses that the robot arm will attempt to solve for. All uniformly selected subpoints of the cone's surface are tested as an endpoint from the starting pose.
 
-Iteratively, a MoveIt **add more specifics of params here** RRTStar trajectory solving operation, each (could be final) surface subpoint from the starting test pose. This RRTStar solver utilizes a multi-objective optimization to find a trajectory with:
+Iteratively, a MoveIt performs a RRTStar trajectory solving operation, each (could be final) surface subpoint from the starting test pose. This RRTStar solver utilizes a multi-objective optimization to find a trajectory with:
 
-70% weight to solving for shorter path length
-30% weight to solving for manipulability
+- 70% weight to solving for shorter path length
+- 30% weight to solving for manipulability
 
 This is done to avoid joint limits while solving for a genuinely desirable trajectory in the cache. After each point is attempted to be solved, an end-pose operation is given as:
-score = (0.5)*manipulability_at_start_pose + (0.5)*manipulability_at_end_pose.
+
+score = [ (`approach_weight`) * manipulability at start pose + (`final_weight`) * manipulability at end pose ]
 
 The point (and its associated trajectory) resulting in the strongest score is chosen and cached. **This is honestly somewhat futile, and could be greatly improved by considering manipulability along the entire trajectory, not just start/end poses. Especially when RRTStar is already working to introduce some manipulability.** The final saved trajectory would result in moving from `test` to `approach`.
 
@@ -84,7 +87,7 @@ Each voxel point has a generated, resulting in an `O(vcm)` time complexity for t
 
 `center` is the exact midpoint of a voxel. When caching, we understand this to be an estimate of the real apple's location, where we migrate from the approach pose to the center pose as 'approaching the apple'. It is expected that the `center` location itself is not actually the apple location itself, as a voxel's cache should be triggered **if the apple falls anywhere within voxel bounds**, typically not found in the exact center. For this reason alone, an additional custom *servo controller* must be implemented, but has not been done yet.
 
-To estimate a similar result of `approach` to `center`, a Cartesian path seeded from the selected `test` to `approach` trajectory end-pose to voxel-midpoint (`center`) is calculated, and stored. This Cartesian path does not consider manipulability. I would expect it still avoids joint limits, but there is nothing proven here, and this is the exact reason a custom servo-controller is needed as a last step.
+To estimate a similar result of `approach` to `center`, a Cartesian path seeded from the selected `test` to `approach` trajectory end-pose to voxel-midpoint (`center`) is calculated, and stored. This Cartesian path does not consider manipulability. I would expect it still avoids joint limits to some degree, but there is nothing proven here, and this is the exact reason a custom servo-controller is needed as a last step.
 
 all_points_cacher (for all points, iterates over trajectory_cacher) parameters:
 | Parameter | Default |
@@ -108,7 +111,6 @@ trajectory_cacher (then called multiple times, used for one point) parameters:
 **WARNING** If an *all points CSV* creation was initially successful, and for any reason it was to be run again in post, **the initial CSV will be overwritten, and the initial cache will be deleted**. For this reason, it's highly recommended that after a cache is fully solved, it be duplicated/backed up in a separate directory.
 
 ### All points executing
-**TODO ADD Notes on how all point exec works, pulling from CSV, checks with moveit, then exec**
 
 all_points_execute (handles approach/final, point selection, sends plan) parameters:
 | Parameter | Default |
